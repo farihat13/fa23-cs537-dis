@@ -1,0 +1,263 @@
+----------------------------------------
+talk about code review 
+----------------------------------------
+
+
+----------------------------------------
+# What is a system call?
+----------------------------------------
+
+[show figure 1]
+
+Limited direct execution: 
+    hardware supports different privilege levels. 
+    User processes run in user mode (restricted).
+        So that one process cannot create problem for other processes
+        e.g., by running forever, changing other process's data etc.
+    OS runs in kernel mode (high privilege).
+
+When a user process needs to perform some high privilege actions, 
+    such as reading or writing files, it requests OS to do it through 
+    system calls.
+
+During a system call, the running process will yield the CPU to kernel 
+    to fulfill the request. 
+
+getpid(), read(), write(), open(), fork() are some of the system calls.
+
+In assignment 02, you will learn to add a system call to xv6.
+
+
+----------------------------------------
+# Details of a system call
+----------------------------------------
+
+[show figure 2: the flow diagram by louis]
+
+A process makes a system call through trapping the kernel through a interrupt. 
+An interrupt is a hardware or software signal that demands 
+    instant attention by an OS. It notifies the processor that 
+    a critical process needs urgent execution. In such a case, 
+    the present working process is interrupted. 
+
+
+
+
+----------------------------------------
+# xv6 Intro
+----------------------------------------
+
+* xv6 available in:           
+    ~cs537-1/xv6/
+
+* To copy and extract xv6 into current directory:    
+    $ tar -xzf ~cs537-1/xv6/xv6.tar.gz -C .
+
+* To run xv6, change directory to inside xv6/, and then run
+    $ make qemu-nox
+
+* try the following commands inside qemu
+    $ ls
+    $ cat README
+    $ mkdir
+    $ echo hello world
+
+* to quit qemu, press `CTRL + a` then `x`
+
+* see that lots of temporary file created. clean them by running
+    $ make clean
+
+* look at the file user.h. it contains the system calls available to user
+* look at the makefile. UPROGS contains the list of user programs
+
+* To create a user-mode program helloworld that prints "hello world"
+    - create a file helloworld.c.  
+        printf (1, "hello world");
+            1 - std output [file descriptor]
+            2 - std error 
+        you MUST exit()
+        xv6 does not have all the standard library functions you may be used to.
+        it contains a more limited set.
+    - Add the name of your program to UPROGS in the Makefile
+    You may want to write some new user-level programs to help test 
+    your implementation of getlastcat.
+
+
+    - CPUS := 1 # helps debugging during concurrency assignment
+
+
+----------------------------------------
+# xv6 - tracing a system call: getpid()
+----------------------------------------
+
+tracing getpid() will give us the idea of how to add a system call in xv6.
+
+* use getpid() in helloworld.c and check its output.
+
+* the following cmd helps to trace all places where getpid was used.
+    $ grep -r getpid .
+
+    should return sth like the following
+        ./sysproc.c:sys_getpid(void)
+        ./usys.S:SYSCALL(getpid)
+        ./syscall.c:extern int sys_getpid(void);
+        ./syscall.c:[SYS_getpid]  sys_getpid,
+        ./user.h:int getpid(void);
+        ./syscall.h:#define SYS_getpid 11
+        ./usertests.c:  ppid = getpid();                    # IGNORE [user program]
+        ./usertests.c:    ppid = getpid();                  # IGNORE [user program]
+        ./helloworld.c:  printf(1, "pid: %d\n", getpid());  # IGNORE [user program]
+
+* first, let's look at syscall.c
+    ./syscall.c:extern int sys_getpid(void);
+    ./syscall.c:[SYS_getpid]  sys_getpid,
+
+    in the system side, any system call is known as sys_<system call name>, 
+        e.g. sys_getpid
+
+    you can pass parameter to a system call in the user side, but you won't 
+        get it as a argument in the kernel side; 
+        e.g., trace open(), kill() etc. system calls.
+        you need to use argptr, argint etc. to read the arguments in the kernel side.
+        maintaining order.
+
+    the original system calls can in implemented in many different places, 
+        as long as they are included correctly. 
+        e.g. getpid() (related to processes) has been implemented in sysproc.c,
+        open(), read(), write() (related to files) has been implemented in sysfile.c
+        However, Be careful not to implement it in the user side.
+
+    to get started with the assignment, first try to reimplement `getpid' 
+        as `mygetpid' and try accessing from a user program.
+
+Good to look at `struct proc' too.
+
+
+-----------------------------------------------
+# xv6 - essential components of the system call
+-----------------------------------------------
+
+The two mechanisms involved in executing a system call are trap and 
+    return-from-trap.
+
+now, let's trace trapping into kernel
+
+    1) trap into the kernel through interrupt 
+    usys.S
+    ------ 
+        // ====CODE==== //
+        SYSCALL(getpid)
+
+        // ====CODE==== //
+        #define SYSCALL(name) \
+        .globl name; \
+        name: \
+            movl $SYS_ ## name, %eax; \     # the syscall number is stored in eax
+            int $T_SYSCALL; \               # trap into the kernel
+            ret
+    
+    2) trap vectors/ interrupt descriptor table are set up in 
+    `vectors.S'
+    ----------- 
+        this file do not exist initially, is generated by generated by vectors.pl.
+        each trap vector calls alltraps
+
+        // ====CODE==== //
+        .globl alltraps
+        .globl vector0
+        vector0:
+        pushl $0
+        pushl $0
+        jmp alltraps
+
+        $ grep -r alltraps .
+        reveals 
+
+        ./trapasm.S:.globl alltraps
+
+    3) context switch 
+    trapasm.S
+    ---------
+        here we save the context of the user process and call `trap()'.
+        this `trap(tf)' function is inside `trap.c' file. 
+
+        // ====CODE==== //
+        # Call trap(tf), where tf=%esp
+        pushl %esp
+        call trap
+        addl $4, %esp
+
+        [
+            notice in this file, the function `trapret' too.
+            it switches back the context from kernel to user process,
+            and returns to the user mode by calling `iret'
+        ]
+
+    4) call trap()
+    trap.c
+    ------
+        // ====CODE==== //
+        if(tf->trapno == T_SYSCALL){ // remember T_SYSCALL was passed while interrupt
+            ...
+            myproc()->tf = tf;
+            syscall();
+            ...
+            return;
+        }
+
+        it calls syscall() in the file syscall.c;
+
+        when you interrupt/trap into the kernel, you get a trapno, 
+        if this no. is eql to the global varialbe T_SYSCALL, that means 
+        user program is requesting a system call. 
+        there are other cases where you might trap into the kernel, not needed for now.
+
+    5) call syscall()
+    syscall.c
+    ---------
+        // ====CODE==== //
+        num = curproc->tf->eax;
+        if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+            curproc->tf->eax = syscalls[num]();
+        }
+        
+        it reads the syscall number from eax and calls the corresponding 
+        function `syscalls[num]'
+        syscalls is an array of function ptrs, it helps point the function 
+        corresponding to the syscall number, for example, `sys_getpid()'. 
+
+    6)  after sys_getpid() returns, it falls through to `trapret' in trapasm.S
+        
+        here context switch happens again and execution returns back to user mode.
+    
+
+----------------------------------------
+# Details of a system call [continued]
+----------------------------------------
+    
+On boot, the OS must 
+    - set up the trap vectors, syscall interrupt number, and syscall tables. 
+
+
+----------------------------------------
+# GDB
+----------------------------------------
+look at the Makefile    
+    - change CFlags from O2 to Og  # helps debugging
+
+$ echo "set auto-load safe-path /" >> ~/.gdbinit
+$ make qemu-nox-gdb
+
+split the terminal and run 
+$ gdb
+in another terminal
+$ continue
+
+CTRL + C
+
+$ break main
+$ frame
+
+
+
+

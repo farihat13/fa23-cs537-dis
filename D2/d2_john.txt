@@ -1,0 +1,81 @@
+John Shawger
+
+
+Table of Contents
+_________________
+
+1. Discussion 2 - System calls and intro to xv6
+.. 1. Review system calls
+.. 2. Demo xv6
+.. 3. xv6 code intro
+
+
+1 Discussion 2 - System calls and intro to xv6
+==============================================
+
+1.1 Review system calls
+~~~~~~~~~~~~~~~~~~~~~~~
+
+  Limited direct execution. Run N processes while the OS maintains
+  control.
+  - Mechanism - trap
+  - Policy - scheduling (next time!)
+
+  System calls let user programs execute code in privileged kernel mode,
+  and then return back to non-privileged user mode. On boot, the OS must
+  set up the trap vectors, syscall interrupt number, and syscall
+  tables. Then the two mechanisms involved in executing a system call
+  are trap and return-from-trap.
+
+
+1.2 Demo xv6
+~~~~~~~~~~~~
+
+  - On CSL machine, untar, compile, run xv6
+  - Show a couple simple commands - ls, cat, mkdir
+
+
+1.3 xv6 code intro
+~~~~~~~~~~~~~~~~~~
+
+  Goals:
+  - control flow of a trap. This will be very helpful when implementing
+    their own system calls.
+  - understand why system call code is in the places where it is
+
+  Along the way, show `grep', searching in text editor. These are
+  essential skills for navigating xv6.
+
+  `user.h' is a good place to start. Here is a list of all the system
+  calls. Choose one to look at -- `getpid' is simple.
+
+  Essential components of the system call. These align with the review
+  of system calls from above
+  1) user-facing part: user programs need function prototypes for all
+     the system calls so they can call them
+  2) transfer control to kernel: how is control transfered to the kernel
+     after calling a system call
+     - trap interrupt. See macro in `usys.S'. Important in this macro is
+       that the syscall number gets stored in `eax'.
+     - trap vectors are set up in `vectors.S'. Assembly not that
+       important, but they all call `alltraps' in `trapasm.S'.
+       - What needs to happen? Save processor state. Call trap to
+         execute the system call. Restore processor state. Return to
+         usermode (`iret').
+       - All the pushes and pops in `alltraps' save state to the stack
+         and restore it later.
+       - the `int' instruction saves some state too, I believe. For
+         example, program counter `eip'.
+       - More details in xv6 manual but just understanding the general
+         flow is fine. They won't need to modify any of this code.
+     - `trap.c' the first case if the trap number is `T_SYSCALL', we
+       call `syscall()'
+     - `syscall()' runs the corresponding function in the system call
+       array of function pointers and stores the result back in `eax'
+       (typical location for return value of function)
+
+  3) system call kernel code.  For example, `sys_getpid()'. Good to look
+     at `struct proc' too.
+
+  4) tranfer control back to user program
+     - `syscall()' returns, `trap()' returns.

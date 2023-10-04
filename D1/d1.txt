@@ -1,0 +1,234 @@
+John Shawger
+
+
+Table of Contents
+_________________
+
+1. Discussion 1
+.. 1. Introductions
+.. 2. Linux Lab Review
+..... 1. Compiler
+..... 2. Linker
+..... 3. Make
+..... 4. Debugger
+..... 5. Documentation
+.. 3. Project 1 Introduction
+..... 1. Opening a directory
+..... 2. Opening and reading files
+..... 3. String manipulation
+
+
+1 Discussion 1
+==============
+
+1.1 Introductions
+~~~~~~~~~~~~~~~~~
+
+
+1.2 Linux Lab Review
+~~~~~~~~~~~~~~~~~~~~
+
+1.2.1 Compiler
+--------------
+
+  Important flags: `-Wall', `-Werror', `-o', `-g'
+
+  For example `gcc -g -o prog prog.c' produces an executable named
+  `prog' with debugging info.
+
+
+1.2.2 Linker
+------------
+
+  Linking is required whenever we call functions not defined in the
+  files we are compiling.
+
+  In general, programs are linked against the C standard library,
+  e.g. `glibc'.
+
+  But what if we call functions that we have defined in other files?
+  Here's an example.
+
+  ,----
+  | // myproc.c
+  | #include <stdio.h>
+  | #include "fn.h"
+  | 
+  | int main(int argc, char* argv[]) {
+  |     printf("square 2: %d\n", square(2));
+  |     return 0;
+  | }
+  `----
+
+  ,----
+  | // fn.c
+  | #include "fn.h"
+  | 
+  | int square(int a) {
+  |     return a * a;
+  | }
+  `----
+
+  ,----
+  | // fn.h
+  | int square(int a);
+  `----
+
+  `gcc -o myproc myproc.c' fails with a linking error.
+
+  We can compile the two files separately into object files and then
+  link them.
+  ,----
+  | =gcc -c myprog.c=
+  | =gcc -c fn.c=
+  | =gcc -o myprog myprog.o fn.o=
+  `----
+
+  So imagine doing this for projects with more than a couple files...
+
+
+1.2.3 Make
+----------
+
+  Let's write a Makefile for our program.
+
+  ,----
+  | # Makefile
+  | SRCS = myprog.c fn.c
+  | TARG = myprog
+  | CC = gcc
+  | OPTS = -g
+  | 
+  | OBJS = $(SRCS:.c=.o)
+  | 
+  | $(TARG): $(OBJS)
+  | 	$(CC) -o $(TARG) $(OBJS)
+  | 
+  | %.o: %.c
+  | 	$(CC) $(OPTS) -c $< -o $@
+  | 
+  | clean:
+  | 	rm -f $(OBJS) $(TARG)
+  `----
+
+  A few notes:
+  - Indentations need to be tabs
+  - Makefiles usually have a bunch of definitions followed by target
+    rules
+  - `$<': target being generated
+  - `$@': first prerequisite
+
+
+1.2.4 Debugger
+--------------
+
+  At a minimum, run program with arguments, breakpoints, continue,
+  backtrace, print variables. This is usually enough for me. Of courses,
+  gdb is much more complex.
+
+
+1.2.5 Documentation
+-------------------
+
+  - `man' pages
+  - How do you know which headers to include?
+  - How do you know which libraries to link?
+  - For command line programs, which flags should be used at the command
+    line and what do they do?
+  - What do functions return on success and failure?
+
+  Look at man pages for unfamiliar functions while doing the p1 example
+  programs.
+
+
+1.3 Project 1 Introduction
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1.3.1 Opening a directory
+-------------------------
+
+  Example: simple `ls'. Important parts they may not have seen before:
+  `opendir', `readdir', `stat', `S_ISREG' (see `inode(7)' man page).
+
+  ,----
+  | // myls.c
+  | #include <stdio.h>
+  | #include <stdlib.h>
+  | #include <sys/stat.h>
+  | #include <dirent.h>
+  | 
+  | int main(int argc, char *argv[]) {
+  |     char *d = "./";
+  |     DIR *dir;
+  |     struct dirent *entry;
+  |     if ((dir = opendir(d)) == NULL) {
+  |         printf("error opening dir\n");
+  |         return 1;
+  |     }
+  |     while ((entry = readdir(dir)) != NULL) {
+  |         printf("%s\t", entry->d_name);
+  |         struct stat st;
+  |         if (stat(entry->d_name, &st) < 0) {
+  |             printf("error stating file\n");
+  |             return 1;
+  |         }
+  |         if (S_ISREG(st.st_mode)) {
+  |             printf("reg\t%lld\n", st.st_size);
+  |         } else {
+  |             printf("\n");
+  |         }
+  |     }
+  |     return 0;
+  | }
+  `----
+
+
+1.3.2 Opening and reading files
+-------------------------------
+
+  Example: `mycat'. Handling a command line argument. `fopen', `fclose'.
+
+  ,----
+  | // mycat.c
+  | #include <stdio.h>
+  | #include <stdlib.h>
+  | 
+  | int main(int argc, char *argv[]) {
+  |     if (argc < 2) {
+  |         printf("wrong num. arguments\n");
+  |         return 0;
+  |     }
+  | 
+  |     FILE *fp;
+  |     if ((fp = fopen(argv[1], "r")) == NULL) {
+  |         printf("error opening file\n");
+  |         return 1;
+  |     }
+  | 
+  |     char buf[80];
+  |     while (fgets(buf, 80, fp) != NULL) {
+  |         printf("%s", buf);
+  |     }
+  |     return 0;
+  | }
+  `----
+
+
+1.3.3 String manipulation
+-------------------------
+
+  1) Make every other line of `mycat' print bold.
+  2) Print lines as bold only if they contain the text "printf" (I'm
+     just catting one of my example program files).
+
+  ,----
+  | printf("\033[1m");
+  | printf("%s", buf);
+  | printf("\033[0m");
+  `----
+
+  All ANSI codes
+  <https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_codes>
+
+  Always terminate with `\033[0m'. `4m' is underline, `1m' is bold, `3m'
+  is italic.

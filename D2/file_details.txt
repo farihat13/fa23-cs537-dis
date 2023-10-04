@@ -1,0 +1,175 @@
+
+-------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+-------------------------------------
+    VERSION in ~cs537-1/xv6/
+-------------------------------------
+
+total 334
+
+asm.h KERNEL
+bio.c KERNEL 
+bootasm.S KERNEL
+bootmain.c KERNEL
+buf.h KERNEL
+
+BUGS
+
+cat.c USER
+
+console.c KERNEL
+
+cuth*
+date.h
+
+defs.h KERNEL
+
+
+dot-bochsrc* TOOLS
+
+echo.c USER
+
+elf.h KERNEL
+
+
+entryother.S
+entry.S
+exec.c KERNEL
+fcntl.h INCLUDE
+file.c KERNEL
+file.h KERNEL
+forktest.c USER
+fs.c KERNEL
+fs.h INCLUDE
+gdbutil TOOLS
+grep.c USER
+ide.c KERNEL
+init.c USER
+initcode.S KERNEL
+ioapic.c KERNEL
+kalloc.c KERNEL
+kbd.c KERNEL
+kbd.h KERNEL
+kernel.ld
+kill.c USER
+lapic.c KERNEL
+LICENSE
+ln.c USER
+log.c
+ls.c USER
+main.c KERNEL
+Makefile
+memide.c
+memlayout.h
+mkdir.c USER
+mkfs.c TOOLS
+mmu.h KERNEL
+mp.c KERNEL
+mp.h KERNEL
+Notes
+param.h INCLUDE
+picirq.c KERNEL
+pipe.c KERNEL
+printf.c USER
+printpcs*
+proc.c KERNEL
+proc.h KERNEL
+pr.pl*
+README
+rm.c USER
+runoff*
+runoff1*
+runoff.list
+runoff.spec
+sh.c USER
+show1*
+sign.pl* KERNEL
+sleep1.p
+sleeplock.c
+sleeplock.h
+spinlock.c KERNEL
+spinlock.h KERNEL
+spinp*
+stat.h INCLUDE
+stressfs.c USER
+string.c KERNEL
+swtch.S KERNEL
+syscall.c KERNEL
+syscall.h INCLUDE
+sysfile.c KERNEL
+sysproc.c KERNEL
+toc.ftr
+toc.hdr
+trapasm.S KERNEL
+trap.c KERNEL
+traps.h INCLUDE
+TRICKS
+types.h INCLUDE
+uart.c KERNEL
+ulib.c USER
+umalloc.c USER
+user.h USER
+usertests.c USER
+usys.S USER
+vectors.pl* KERNEL
+vm.c KERNEL
+wc.c USER
+x86.h INCLUDE
+zombie.c USER
+
+
+
+-------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+-------------------------------------
+    OLD VERSION
+-------------------------------------
+
+
+-------------------------------------
+include/
+-------------------------------------
+fcntl.h   param.h   syscall.h types.h
+fs.h      stat.h    traps.h   x86.h
+-------------------------------------
+
+
+
+-------------------------------------
+tools/
+-------------------------------------
+dot-bochsrc gdbutil     mkfs.c
+dot-gdbinit makefile.mk
+-------------------------------------
+
+
+
+-------------------------------------
+kernel/
+-------------------------------------
+asm.h       file.h      mp.c        syscall.c
+bio.c       fs.c        mp.h        sysfile.c
+bootasm.S   ide.c       multiboot.S sysfunc.h
+bootmain.c  initcode.S  picirq.c    sysproc.c
+bootother.S ioapic.c    pipe.c      timer.c
+buf.h       kalloc.c    proc.c      trap.c
+console.c   kbd.c       proc.h      trapasm.S
+data.S      kbd.h       sign.pl     uart.c
+defs.h      lapic.c     spinlock.c  vectors.pl
+elf.h       main.c      spinlock.h  vm.c
+exec.c      makefile.mk string.c
+file.c      mmu.h       swtch.S
+-------------------------------------
+
+
+
+-------------------------------------
+user/
+-------------------------------------
+cat.c       ln.c        sh.c        usertests.c
+echo.c      ls.c        stressfs.c  usys.S
+forktest.c  makefile.mk tester.c    wc.c
+grep.c      mkdir.c     ulib.c      zombie.c
+init.c      printf.c    umalloc.c
+kill.c      rm.c        user.h
+-------------------------------------
